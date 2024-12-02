@@ -1,10 +1,11 @@
 ﻿@page "/login"
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [ExcludeFromInteractiveRouting]
 
 @inject RemoteAuthService AuthService
 @inject NavigationManager Navigation
-@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IdentityRedirectManager RedirectManager
 
 <h3>Login</h3>
@@ -52,7 +53,7 @@
             }, "JwtAuth");
 
             var user = new ClaimsPrincipal(identity);
-            await AuthStateProvider.MarkUserAsAuthenticated(token);
+            await ((CustomAuthenticationStateProvider)AuthStateProvider).MarkUserAsAuthenticated(token);
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else
