@@ -1,0 +1,69 @@
+﻿@page "/login"
+@using System.Security.Claims
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject RemoteAuthService AuthService
+@inject NavigationManager Navigation
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject IdentityRedirectManager RedirectManager
+
+<h3>Login</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <p style="color:red">@ErrorMessage</p>
+}
+
+<EditForm Model="loginModel" OnValidSubmit="PerformLogin" FormName="login">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label for="username">Username</label>
+        <InputText id="username" @bind-Value="loginModel.Username" placeholder="Username" />
+    </div>
+    <div>
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="loginModel.Password" type="password" placeholder="Password" />
+    </div>
+    <button type="submit">Login</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = new();
+    
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string ErrorMessage;
+
+    private async Task PerformLogin()
+    {
+        var token = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            var identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.Name, loginModel.Username),
+                new Claim(ClaimTypes.Email, "test@example.com"),
+                new Claim("JWT", token)
+            }, "JwtAuth");
+
+            var user = new ClaimsPrincipal(identity);
+            await AuthStateProvider.MarkUserAsAuthenticated(token);
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else
+        {
+            ErrorMessage = "Invalid credentials. Please try again.";
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+}
